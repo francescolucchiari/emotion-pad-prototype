@@ -1,0 +1,195 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emotion pad · prototipo</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{--surface-1:#f3f2ee;--border:rgba(0,0,0,.12);--text-secondary:#555}
+body{margin:0;padding:16px;font-family:system-ui,sans-serif;background:#fff}
+*{-webkit-tap-highlight-color:transparent}
+.ep-pad,.ep-knob{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media (max-width:500px){body{padding:0}body .ep-wrap{background:#fff;border-radius:0;padding:8px 0 24px}body .ep-phone{border:none;border-radius:0;width:100%;max-width:360px;padding:16px 20px}body .ep-ctrl{padding:0 16px}body .ep-padbox{width:244px;margin:0 auto}}
+</style></head><body>
+<!--WIDGET-->
+<style>
+.ep-wrap{background:var(--surface-1);border-radius:12px;padding:1.25rem 1rem;display:flex;flex-direction:column;align-items:center;gap:14px}
+.ep-phone{width:320px;background:#fff;color:#1d1d1f;border:0.5px solid var(--border);border-radius:32px;padding:20px 18px;box-sizing:border-box}
+.ep-card{border-radius:14px;padding:14px;text-align:center;min-height:72px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;transition-property:background-color;transition-duration:150ms;transition-timing-function:ease-out;box-shadow:0px 0px 0px 1px oklch(0 0 0 / 0.06),0px 1px 2px -1px oklch(0 0 0 / 0.06),0px 2px 4px 0px oklch(0 0 0 / 0.04)}
+.ep-padbox{position:relative;padding:20px}
+.ep-pad{position:relative;width:244px;height:244px;border-radius:40px;touch-action:none;cursor:pointer;overflow:hidden;background:#fff}
+.ep-outline{position:absolute;left:0;top:0;pointer-events:none}
+.ep-pad canvas{position:absolute;left:0;top:0;width:244px;height:244px;display:block}
+.ep-knob{position:absolute;left:0;top:0;width:48px;height:48px;margin:-24px 0 0 -24px;pointer-events:none;will-change:transform}
+.ep-knob-i{width:100%;height:100%;border-radius:50%;background:#F06A35;border:4px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.2);box-sizing:border-box;transform:scale(0);transition-property:transform;transition-duration:150ms;transition-timing-function:ease-out}
+.ep-knob.on .ep-knob-i{transform:scale(1)}
+.ep-pad.drag .ep-knob.on .ep-knob-i{transform:scale(1.06)}
+.ep-knob.snap{transition:left .09s ease-out,top .09s ease-out}
+.ep-knob.settle{transition:left .24s cubic-bezier(.3,1.5,.5,1),top .24s cubic-bezier(.3,1.5,.5,1)}
+.ep-lbl{position:absolute;font-size:11px;color:#6e6e73;white-space:nowrap;pointer-events:none}
+.ep-ctrl{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;align-items:center;font-size:13px;color:var(--text-secondary)}
+.ep-ctrl label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.ep-ctrl select{font-size:13px;padding:2px 6px}
+</style>
+<div class="ep-wrap">
+<div class="ep-phone">
+<p style="margin:0 0 6px;font-size:13px;color:#6e6e73;text-align:center">L'area più vicina</p>
+<div class="ep-card" id="ep-card" style="background:#f6f6f6"><div id="ep-cardtxt"><div style="display:flex;align-items:center;justify-content:center;gap:8px;padding-right:20px"><span id="ep-chip" style="width:12px;height:12px;border-radius:50%;background:#d0d0d0;flex-shrink:0;border:2px solid #fff;box-sizing:border-box;box-shadow:0 0 0 0.5px rgba(0,0,0,.12)"></span><p id="ep-name" style="margin:0;font-size:17px;font-weight:500">Tocca il riquadro</p></div><p id="ep-desc" style="margin:4px 0 0;font-size:12px;color:#6e6e73">Scegli il punto più vicino a come ti sentivi</p></div></div>
+<p style="margin:16px 0 6px;font-size:14px;font-weight:500">Come ti sentivi?</p>
+<div class="ep-padbox">
+<span class="ep-lbl" style="top:2px;left:50%;transform:translateX(-50%)">Tanta energia</span>
+<span class="ep-lbl" style="bottom:2px;left:50%;transform:translateX(-50%)">Poca energia</span>
+<span class="ep-lbl" style="left:-19px;top:50%;transform:translateY(-50%) rotate(-90deg)">Spiacevole</span>
+<span class="ep-lbl" style="right:-18px;top:50%;transform:translateY(-50%) rotate(90deg)">Piacevole</span>
+<div class="ep-pad" id="ep-pad"><canvas id="ep-cv" width="244" height="244"></canvas><svg class="ep-outline" width="244" height="244" viewBox="0 0 244 244" aria-hidden="true"><path id="ep-outline-p" fill="none" stroke="rgba(0,0,0,.1)" stroke-width="2"/></svg><div class="ep-knob" id="ep-knob"><div class="ep-knob-i"></div></div></div>
+</div>
+</div>
+<div class="ep-ctrl">
+<label>Animazione <select id="ep-engine"><option value="spring" selected>Molle</option><option value="css">CSS (versione precedente)</option></select></label>
+<label>Snap <select id="ep-snap"><option value="off">Spento</option><option value="drag" selected>Durante il drag</option><option value="release">Al rilascio</option></select></label>
+<label><input type="checkbox" id="ep-axes" checked> Assi bianchi</label>
+<label><input type="checkbox" id="ep-blur" checked> Sfocatura</label>
+<label><input type="checkbox" id="ep-scale"> Scala in base alla distanza</label>
+<label><input type="checkbox" id="ep-pal"> Palette attuale (pastello)</label>
+<label><input type="checkbox" id="ep-sound" checked> Clic sonoro</label>
+<button id="ep-test" type="button" style="font-size:13px;padding:4px 12px">Prova aptica</button>
+<button id="ep-reset" type="button" style="font-size:13px;padding:4px 12px">Reset</button>
+</div>
+</div>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+var pad=$('ep-pad'),cv=$('ep-cv'),knob=$('ep-knob'),card=$('ep-card'),cardTxt=$('ep-cardtxt'),chip=$('ep-chip'),nameEl=$('ep-name'),descEl=$('ep-desc'),oEngine=$('ep-engine'),oSnap=$('ep-snap'),oAxes=$('ep-axes'),oBlur=$('ep-blur'),oScale=$('ep-scale'),oPal=$('ep-pal'),oSound=$('ep-sound'),btnTest=$('ep-test'),btnReset=$('ep-reset');
+var H=null;import('https://cdn.jsdelivr.net/npm/web-haptics@0.0.6/+esm').then(function(m){H=new m.WebHaptics({debug:oSound.checked})}).catch(function(){});
+var ctx=cv.getContext('2d');
+function squircle(w,h,R,sm){var rad=function(d){return d*Math.PI/180},budget=Math.min(w,h)/2,p=Math.min((1+sm)*R,budget);sm=Math.min(sm,budget/R-1);
+var arc=90*(1-sm),asl=Math.sin(rad(arc/2))*R*Math.SQRT2,alpha=(90-arc)/2,p34=R*Math.tan(rad(alpha/2)),beta=45*sm,c=p34*Math.cos(rad(beta)),d=c*Math.tan(rad(beta)),b=(p-asl-c-d)/3,a=2*b,f=function(n){return +n.toFixed(3)};
+a=f(a);b=f(b);c=f(c);d=f(d);var s=f(asl),ab=f(a+b),bc=f(b+c),abc=f(a+b+c);
+return 'M '+f(w-p)+' 0 c '+a+' 0 '+ab+' 0 '+abc+' '+d+' a '+R+' '+R+' 0 0 1 '+s+' '+s+' c '+d+' '+c+' '+d+' '+bc+' '+d+' '+abc
++' L '+w+' '+f(h-p)+' c 0 '+a+' 0 '+ab+' '+(-d)+' '+abc+' a '+R+' '+R+' 0 0 1 '+(-s)+' '+s+' c '+(-c)+' '+d+' '+(-bc)+' '+d+' '+(-abc)+' '+d
++' L '+f(p)+' '+h+' c '+(-a)+' 0 '+(-ab)+' 0 '+(-abc)+' '+(-d)+' a '+R+' '+R+' 0 0 1 '+(-s)+' '+(-s)+' c '+(-d)+' '+(-c)+' '+(-d)+' '+(-bc)+' '+(-d)+' '+(-abc)
++' L 0 '+f(p)+' c 0 '+(-a)+' 0 '+(-ab)+' '+d+' '+(-abc)+' a '+R+' '+R+' 0 0 1 '+s+' '+(-s)+' c '+c+' '+(-d)+' '+bc+' '+(-d)+' '+abc+' '+(-d)+' Z'}
+(function(){var dPath=squircle(244,244,40,0.6);$('ep-outline-p').setAttribute('d',dPath);if(window.CSS&&CSS.supports&&CSS.supports('clip-path',"path('M0 0 L1 1 Z')")){pad.style.clipPath="path('"+dPath+"')";pad.style.borderRadius='0'}})();
+var S=244,KR=24,GAP=12,M=KR+GAP,N=11,ST=(S-2*M)/(N-1),dpr=window.devicePixelRatio||1;
+cv.width=S*dpr;cv.height=S*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+var PAL={cur:{tl:[244,240,255],tr:[255,246,221],bl:[240,247,255],br:[243,255,226]},sat:{tl:[196,178,255],tr:[255,214,110],bl:[170,206,255],br:[196,236,140]}};
+var Z={tl:['Tensione e agitazione','Spiacevole, con tanta energia'],tr:['Energia e buonumore','Piacevole, con tanta energia'],bl:['Stanchezza e tristezza','Spiacevole, con poca energia'],br:['Calma e serenità','Piacevole, con poca energia'],c:['Neutro','Né piacevole né spiacevole']};
+var field=null,zone=null,shown=false,drag=false,lastPos=null;
+var P=null,T=null,phase='idle',spr={z:1,r:.3},onSettle=null,offset={x:0,y:0},hist=[],cell=null,raf=0,lastT=0;
+function mode(){return oSnap.value}
+function springs(){return oEngine.value==='spring'}
+function clamp01(v){return Math.min(Math.max(v,0),1)}
+function norm(px){return clamp01((px-M)/(S-2*M))}
+function gridClamp(v){return Math.min(Math.max(v,M),S-M)}
+function cellPos(i){return M+i*ST}
+function nearestIdx(v){return Math.min(N-1,Math.max(0,Math.round((v-M)/ST)))}
+function hystIdx(v,prev){var f=(v-M)/ST;if(prev!==null&&Math.abs(f-prev)<0.65)return prev;return Math.min(N-1,Math.max(0,Math.round(f)))}
+function rb(o){var D=8,c=.55;return o*D*c/(D+c*o)}
+function rub(v){if(v<M)return M-rb(M-v);if(v>S-M)return S-M+rb(v-(S-M));return v}
+function pal(){return oPal.checked?PAL.cur:PAL.sat}
+function col(x,y,p){var u=(x+1)/2,v=(y+1)/2;var w={tl:Math.pow((1-u)*v,2),tr:Math.pow(u*v,2),bl:Math.pow((1-u)*(1-v),2),br:Math.pow(u*(1-v),2)};var s=w.tl+w.tr+w.bl+w.br,m=[0,0,0];for(var k in w)for(var i=0;i<3;i++)m[i]+=p[k][i]*w[k]/s;var t=Math.min(1,Math.hypot(x,y)/1.2);t=t*t*(3-2*t);return m.map(function(c){return Math.round(255+(c-255)*t)})}
+function buildField(){var n=90,o=document.createElement('canvas');o.width=o.height=n;var c=o.getContext('2d'),d=c.createImageData(n,n),p=pal();for(var j=0;j<n;j++)for(var i=0;i<n;i++){var k=col(norm(i/(n-1)*S)*2-1,1-norm(j/(n-1)*S)*2,p),qq=(j*n+i)*4;d.data[qq]=k[0];d.data[qq+1]=k[1];d.data[qq+2]=k[2];d.data[qq+3]=255}c.putImageData(d,0,0);field=o}
+function draw(p){ctx.clearRect(0,0,S,S);ctx.imageSmoothingEnabled=true;ctx.drawImage(field,0,0,S,S);
+var axes=oAxes.checked,blur=oBlur.checked,scale=oScale.checked,kx=p?p.x:0,ky=p?p.y:0,ci=p?nearestIdx(kx):-1,cj=p?nearestIdx(ky):-1;
+for(var j=0;j<N;j++)for(var i=0;i<N;i++){var x=M+i*ST,y=M+j*ST,a=0.28,r=2,f=0;
+if(p){f=Math.exp(-Math.pow(Math.hypot(x-kx,y-ky)/S/0.3,2));if(blur)a=0.08+0.55*f;if(scale)r=1.4+1.8*f}
+else if(blur){a=0.16}
+if(p&&axes&&(i===ci||j===cj)){var ra=Math.max(r,2.6);ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.arc(x,y,ra+0.7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,ra,0,Math.PI*2);ctx.fill();continue}
+ctx.fillStyle='rgba(30,30,40,'+a.toFixed(3)+')';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}}
+function pickZone(x,y){var d=Math.hypot(x,y),hy=0.06,rc=zone==='c'?0.3+hy:0.3;if(d<rc)return 'c';
+var qd=(y>=0?'t':'b')+(x>=0?'r':'l');
+if(zone&&zone!=='c'&&zone!==qd){var qx=zone[1]==='r'?1:-1,qy=zone[0]==='t'?1:-1;if(x*qx>-hy&&y*qy>-hy)return zone}
+return qd}
+function hap(k){if(H){H.trigger(k).catch(function(){});return}if(navigator.vibrate)try{navigator.vibrate(k==='selection'?6:12)}catch(e){}}
+function animCard(dx,dy){if(!cardTxt.animate)return;var l=Math.hypot(dx,dy),ox=l?dx/l*3:0,oy=l?dy/l*3:0;cardTxt.getAnimations().forEach(function(a){a.cancel()});cardTxt.animate([{opacity:0,transform:'translate('+(-ox)+'px,'+(-oy)+'px)'},{opacity:1,transform:'translate(0,0)'}],{duration:150,easing:'cubic-bezier(.2,.8,.2,1)'})}
+function updateCard(p){var x=norm(p.x)*2-1,y=1-norm(p.y)*2;card.style.background='rgb('+col(x,y,pal()).join(',')+')';
+var z=pickZone(x,y);
+if(z!==zone){zone=z;nameEl.textContent=Z[z][0];descEl.textContent=Z[z][1];chip.style.background='rgb('+(z==='c'?[225,225,225]:PAL.sat[z]).join(',')+')';animCard(lastPos?p.x-lastPos.x:0,lastPos?p.y-lastPos.y:0);hap(mode()==='off'?'light':'medium')}
+lastPos={x:p.x,y:p.y}}
+function pos(){return springs()?P:T}
+function render(){var p=pos();card.style.transitionDuration=springs()?'0ms':'';if(!p){draw(null);return}
+if(springs()){knob.style.left='0px';knob.style.top='0px';knob.style.transform='translate3d('+p.x+'px,'+p.y+'px,0)'}
+else{knob.style.transform='none';knob.style.left=p.x+'px';knob.style.top=p.y+'px'}
+updateCard(p);draw(p)}
+function step(dt){var k=Math.pow(2*Math.PI/spr.r,2),c=4*Math.PI*spr.z/spr.r,n=Math.max(1,Math.ceil(dt*240)),h=dt/n;
+for(var s=0;s<n;s++){var ax=-k*(P.x-T.x)-c*P.vx,ay=-k*(P.y-T.y)-c*P.vy;P.vx+=ax*h;P.vy+=ay*h;P.x+=P.vx*h;P.y+=P.vy*h}}
+function frame(now){raf=0;var dt=lastT?Math.min(0.05,(now-lastT)/1000):1/60,moving=false;lastT=now;
+if(springs()&&P&&T){
+if(phase==='direct'){P.x=T.x;P.y=T.y}
+else if(phase==='catch'||phase==='spring'){step(dt);var d=Math.hypot(P.x-T.x,P.y-T.y),sp=Math.hypot(P.vx,P.vy);
+if(phase==='catch'&&d<1){phase='direct';P.x=T.x;P.y=T.y;P.vx=P.vy=0}
+else if(d<0.3&&sp<8){P.x=T.x;P.y=T.y;P.vx=P.vy=0;if(phase==='spring'&&!drag){phase='idle';var cb=onSettle;onSettle=null;if(cb)cb()}}
+else moving=true}}
+render();
+if(moving)raf=requestAnimationFrame(frame);else lastT=0}
+function kick(){if(!raf)raf=requestAnimationFrame(frame)}
+function finger(e){var r=pad.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*S,y:(e.clientY-r.top)/r.height*S}}
+function pushHist(f){var t=performance.now();hist.push({t:t,x:f.x,y:f.y});while(hist.length>2&&t-hist[0].t>80)hist.shift()}
+function releaseVel(){var n=hist.length;if(n<2||performance.now()-hist[n-1].t>60)return{x:0,y:0};var a=hist[0],b=hist[n-1],dt=(b.t-a.t)/1000;if(dt<=0)return{x:0,y:0};var cap=function(v){return Math.max(-2500,Math.min(2500,v))};return{x:cap((b.x-a.x)/dt),y:cap((b.y-a.y)/dt)}}
+function projIdx(b,v){var f=(b-M)/ST,n=Math.round(f),p=Math.round(f+v*0.099/ST);p=Math.max(n-1,Math.min(n+1,p));return Math.max(0,Math.min(N-1,p))}
+function targetFrom(f){var x=f.x+offset.x,y=f.y+offset.y;
+if(mode()==='drag'){var i=hystIdx(gridClamp(x),cell?cell.i:null),j=hystIdx(gridClamp(y),cell?cell.j:null),first=!cell,changed=first||cell.i!==i||cell.j!==j;cell={i:i,j:j};if(changed&&!first)hap('selection');
+if(!springs())return{x:cellPos(i),y:cellPos(j)};
+return{x:(x<M||x>S-M)?rub(x):cellPos(i),y:(y<M||y>S-M)?rub(y):cellPos(j)}}
+if(!springs())return{x:gridClamp(x),y:gridClamp(y)};
+return{x:rub(x),y:rub(y)}}
+function syncClasses(){knob.classList.remove('settle');knob.classList.toggle('snap',!springs()&&mode()==='drag')}
+pad.addEventListener('pointerdown',function(e){e.preventDefault();try{pad.setPointerCapture(e.pointerId)}catch(_){}
+drag=true;pad.classList.add('drag');knob.classList.remove('settle');hist=[];onSettle=null;var f=finger(e);pushHist(f);
+var cur=pos();cell=(shown&&cur&&mode()==='drag')?{i:nearestIdx(cur.x),j:nearestIdx(cur.y)}:null;
+if(springs()){var grabbed=shown&&P&&Math.hypot(f.x-P.x,f.y-P.y)<=30;offset=grabbed?{x:P.x-f.x,y:P.y-f.y}:{x:0,y:0};T=targetFrom(f);
+if(!shown||!P){P={x:T.x,y:T.y,vx:0,vy:0};phase=mode()==='drag'?'spring':'direct';spr={z:1,r:.14}}
+else if(mode()==='drag'){phase='spring';spr={z:1,r:grabbed?.14:.2}}
+else if(grabbed){phase='direct';P.vx=P.vy=0}
+else{phase='catch';spr={z:1,r:.2}}}
+else{offset={x:0,y:0};T=targetFrom(f)}
+shown=true;knob.classList.add('on');kick()});
+pad.addEventListener('pointermove',function(e){if(!drag)return;var f=finger(e);pushHist(f);T=targetFrom(f);if(springs()&&mode()==='drag')spr={z:1,r:.14};kick()});
+function onUp(){if(!drag)return;drag=false;pad.classList.remove('drag');var v=releaseVel();
+if(springs()){
+if(mode()==='release'){var i=projIdx(gridClamp(P.x),v.x),j=projIdx(gridClamp(P.y),v.y);T={x:cellPos(i),y:cellPos(j)};spr={z:Math.hypot(v.x,v.y)>300?.8:1,r:.3};if(phase==='direct'){P.vx=v.x;P.vy=v.y}phase='spring';onSettle=function(){hap('soft')}}
+else if(mode()==='drag'){T={x:cellPos(cell?cell.i:nearestIdx(P.x)),y:cellPos(cell?cell.j:nearestIdx(P.y))};spr={z:1,r:.3};phase='spring';hap('light')}
+else{var tx=gridClamp(T.x),ty=gridClamp(T.y),rubbered=tx!==T.x||ty!==T.y;T={x:tx,y:ty};
+if(phase==='catch'){phase='spring';spr={z:1,r:.2}}
+else if(rubbered){if(phase==='direct'){P.vx=v.x;P.vy=v.y}phase='spring';spr={z:1,r:.3}}
+else phase='idle';
+hap('light')}}
+else{if(mode()==='release'){knob.classList.add('settle');T={x:cellPos(nearestIdx(T.x)),y:cellPos(nearestIdx(T.y))};hap('soft')}else hap('light')}
+kick()}
+['pointerup','pointercancel','lostpointercapture'].forEach(function(t){pad.addEventListener(t,onUp)});
+btnTest.addEventListener('click',function(){hap('success')});
+function refresh(){if(shown)render();else draw(null)}
+oAxes.addEventListener('change',refresh);oBlur.addEventListener('change',refresh);oScale.addEventListener('change',refresh);
+oSnap.addEventListener('change',function(){syncClasses();cell=null;if(!shown)return;var p=pos();
+var t=mode()==='off'?{x:gridClamp(p.x),y:gridClamp(p.y)}:{x:cellPos(nearestIdx(p.x)),y:cellPos(nearestIdx(p.y))};
+if(springs()){T=t;spr={z:1,r:.3};phase='spring'}else{if(mode()==='release')knob.classList.add('settle');T=t}
+kick()});
+oEngine.addEventListener('change',function(){if(raf){cancelAnimationFrame(raf);raf=0;lastT=0}knob.classList.remove('snap','settle');
+if(shown){var b=T||P,t={x:gridClamp(b.x),y:gridClamp(b.y)};if(mode()!=='off')t={x:cellPos(nearestIdx(t.x)),y:cellPos(nearestIdx(t.y))};T=t;P={x:t.x,y:t.y,vx:0,vy:0};phase='idle'}
+render();void knob.offsetWidth;syncClasses()});
+oPal.addEventListener('change',function(){buildField();refresh()});
+oSound.addEventListener('change',function(){if(H)H.setDebug(oSound.checked)});
+btnReset.addEventListener('click',function(){if(raf){cancelAnimationFrame(raf);raf=0;lastT=0}shown=false;P=T=null;phase='idle';zone=null;cell=null;lastPos=null;onSettle=null;knob.classList.remove('on');card.style.background='#f6f6f6';chip.style.background='#d0d0d0';nameEl.textContent='Tocca il riquadro';descEl.textContent='Scegli il punto più vicino a come ti sentivi';draw(null)});
+syncClasses();buildField();draw(null);
+})();
+</script>
+<!--/WIDGET-->
+<style>
+.ep-note{max-width:560px;margin:20px auto 0;font-size:13px;color:#1d1d1f;line-height:1.5}
+.ep-note summary{cursor:pointer;font-weight:600;font-size:14px;padding:8px 0}
+.ep-note table{width:100%;border-collapse:collapse;margin:8px 0 12px}
+.ep-note th,.ep-note td{text-align:left;padding:8px 6px;border-bottom:0.5px solid rgba(0,0,0,.12);vertical-align:top}
+.ep-note th{font-weight:600;color:#6e6e73;font-size:12px}
+.ep-note code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#f5f5f7;padding:1px 4px;border-radius:4px}
+.ep-note p{margin:6px 0;color:#3a3a3c}
+@media (max-width:500px){.ep-note{padding:0 16px}.ep-note table,.ep-note tbody,.ep-note tr,.ep-note td{display:block;width:auto}.ep-note tr:first-child{display:none}.ep-note tr{border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:6px 12px;margin-bottom:10px}.ep-note td{border:none;padding:5px 0}.ep-note td::before{content:attr(data-label);display:block;font-size:11px;color:#6e6e73;font-weight:600}.ep-note code{word-break:break-word}}
+</style>
+<details class="ep-note">
+<summary>Nota per lo sviluppo: feedback aptico</summary>
+<p>Nel prototipo web il feedback è un clic sonoro: su iOS il web non può attivare l'aptica (test su iOS 27, Safari e Chrome). In app nativa il suono si sostituisce con la vibrazione, evento per evento.</p>
+<table>
+<tr><th>Momento</th><th>iOS nativo</th><th>Android</th><th>Preset prototipo</th></tr>
+<tr><td data-label="Momento">Passaggio da un puntino all'altro (snap durante il drag)</td><td data-label="iOS nativo"><code>UISelectionFeedbackGenerator</code></td><td data-label="Android"><code>CLOCK_TICK</code></td><td data-label="Preset prototipo"><code>selection</code></td></tr>
+<tr><td data-label="Momento">Cambio di area</td><td data-label="iOS nativo"><code>UIImpactFeedbackGenerator(.medium)</code>, <code>.light</code> senza snap</td><td data-label="Android"><code>CONTEXT_CLICK</code></td><td data-label="Preset prototipo"><code>medium</code> / <code>light</code></td></tr>
+<tr><td data-label="Momento">Aggancio al rilascio (snap al rilascio)</td><td data-label="iOS nativo"><code>UIImpactFeedbackGenerator(.soft)</code></td><td data-label="Android"><code>GESTURE_END</code></td><td data-label="Preset prototipo"><code>soft</code></td></tr>
+</table>
+<p>Il primo tocco sul pad non produce il tick di snap, solo quello di cambio area. Su iOS conviene chiamare <code>prepare()</code> sul generator al touch down, per evitare latenza sul primo tick.</p>
+</details>
+</body></html>
